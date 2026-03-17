@@ -13,7 +13,6 @@ DECK_MAPPING = {
     "E": 4,
     "F": 5,
     "G": 6,
-    "Unknown": 7,
 }
 
 SIDE_MAPPING = {
@@ -243,69 +242,40 @@ elif menu == "Test du Modèle":
             # st.markdown("### Profil passager :")
             profil_col1, profil_col2 = st.columns(2)
             with profil_col1:
-                # with st.container(border=True):
+                 with st.container(border=False):
                     st.caption("Identité :")
                     age = st.slider("Âge", 0, 80, 40)
-                    vip = st.segmented_control(
-                        "Statut VIP",
-                        options=[0, 1],
-                        default=0,
-                        key="vip_control",
-                        format_func=lambda x: "Non" if x == 0 else "Oui",
-                    )
             with profil_col2:
-                with st.container(border=True):
-                    st.caption("Conditions du voyage :")
-                    cryosleep = st.segmented_control(
-                        "Mode CryoSleep :",
-                        options=[0, 1],
-                        default=0,
-                        key="cryosleep_control",
-                        format_func=lambda x: "Non" if x == 0 else "Oui",
-                    )
-                    depenses_activees = st.segmented_control(
-                        "Souhaites-tu dépenser ?",
-                        options=[0, 1],
-                        default=0,
-                        key="spend_control",
-                        format_func=lambda x: "Non" if x == 0 else "Oui",
-                    )
-
-            with st.form("formulaire_prediction", clear_on_submit=False):
-                st.markdown("### Voyage :")
-                voyage_col1, voyage_col2 = st.columns([1.1, 1.4])
-                with voyage_col1:
-                    with st.container(border=True):
-                        homeplanet = st.segmented_control(
-                            "Planète d'origine :",
-                            options=["Earth", "Europa", "Mars", "Inconnue"],
-                            default="Earth",
-                            key="homeplanet_control",
+                with st.container(border=False):
+                    cond_title_spacer, cond_title_col = st.columns([0.35, 0.65])
+                    with cond_title_col:
+                        st.caption("Conditions du voyage :")
+                    cond_spacer, cond_col1, cond_col2 = st.columns([0.2, 0.4, 0.4])
+                    with cond_col1:
+                        cryosleep = st.segmented_control(
+                            "Mode CryoSleep :",
+                            options=[0, 1],
+                            default=0,
+                            key="cryosleep_control",
+                            format_func=lambda x: "Non" if x == 0 else "Oui",
                         )
-                with voyage_col2:
-                    with st.container(border=True):
-                        cabin_top_col1, cabin_top_col2 = st.columns(2)
-                        with cabin_top_col1:
-                            cabin_num = st.number_input(
-                                "Numéro de cabine :",
-                                min_value=0,
-                                max_value=2000,
-                                value=0,
-                                step=1,
-                            )
-                        with cabin_top_col2:
-                            deck_label = st.selectbox(
-                                "Deck :",
-                                options=list(DECK_MAPPING.keys()),
-                                index=0,
-                            )
-                        side_label = st.segmented_control(
-                            "Côté :",
-                            options=list(SIDE_MAPPING.keys()),
-                            default="P - Babord",
-                            key="side_control",
+                        vip = st.segmented_control(
+                            "Statut VIP :",
+                            options=[0, 1],
+                            default=0,
+                            key="vip_control",
+                            format_func=lambda x: "Non" if x == 0 else "Oui",
+                        )
+                    with cond_col2:
+                        depenses_activees = st.segmented_control(
+                            "Souhaites-tu dépenser ?",
+                            options=[0, 1],
+                            default=0,
+                            key="spend_control",
+                            format_func=lambda x: "Non" if x == 0 else "Oui",
                         )
 
+            with st.container(border=False):
                 st.markdown("### Dépenses à bord :")
                 if depenses_activees == 1:
                     with st.container(border=True):
@@ -332,14 +302,48 @@ elif menu == "Test du Modèle":
                             )
                 else:
                     with st.container(border=True):
-                        st.caption("Aucune dépense sélectionnée")
+                        st.caption("Pas de dépenses, tu préfères économiser pour les souvenirs du voyage.")
                     room_service = 0.0
                     food_court = 0.0
                     shopping_mall = 0.0
                     spa = 0.0
                     vr_deck = 0.0
 
-                predire = st.form_submit_button(
+                st.markdown("### Voyage :")
+                voyage_col1, voyage_col2 = st.columns([1.1, 1.4])
+                with voyage_col1:
+                    with st.container(border=False):
+                        homeplanet = st.segmented_control(
+                            "Planète d'origine :",
+                            options=["Earth", "Europa", "Mars", "Inconnue"],
+                            default="Earth",
+                            key="homeplanet_control",
+                        )
+                with voyage_col2:
+                    with st.container(border=False):
+                        cabin_top_col1, cabin_top_col2 = st.columns(2)
+                        with cabin_top_col1:
+                            cabin_num = st.number_input(
+                                "Numéro de cabine :",
+                                min_value=0,
+                                max_value=1894,
+                                value=0,
+                                step=1,
+                            )
+                        with cabin_top_col2:
+                            deck_label = st.selectbox(
+                                "Deck :",
+                                options=list(DECK_MAPPING.keys()),
+                                index=0,
+                            )
+                        side_label = st.segmented_control(
+                            "Côté :",
+                            options=list(SIDE_MAPPING.keys()),
+                            default="P - Babord",
+                            key="side_control",
+                        )
+
+                predire = st.button(
                     "Appuie si tu veux connaître ton sort",
                     type="primary",
                     use_container_width=True,
@@ -398,26 +402,50 @@ elif menu == "Test du Modèle":
                 st.error(f"Erreur lors de la prediction : {e}")
 
 elif menu == "Conclusions & Perspectives":
-    st.title("Conclusions et pistes d'amelioration")
-    st.caption(
-        "Cette section presente un bilan du projet Spaceship Titanic, de l'exploration des donnees jusqu'a l'utilisation du modele."
-    )
+    st.title("Conclusions et Pistes d'Amélioration")
+
     st.markdown(
         """
-        ### Bilan du projet
-        Ce projet Spaceship Titanic montre une demarche complete de data science :
-        analyse des donnees, nettoyage, modelisation puis integration dans une application Streamlit.
+        ### Bilan du Projet
+        Ce projet Spaceship Titanic m'a permis de suivre toutes les étapes d'un projet
+        de machine learning : exploration des données, nettoyage, preprocessing,
+        création de variables, entraînement de plusieurs modèles puis intégration
+        du modèle final dans une application Streamlit.
+
+        ### Résultats obtenus dans le notebook
+        Dans le notebook, le modèle RandomForest retenu avec un seuil optimisé de **0.49**
+        obtient les performances suivantes sur le jeu de test :
+        - **Accuracy :** 0.791466
+        - **ROC-AUC :** 0.880194
+        - **F1-Score :** 0.786986
+
+        Le rapport de classification montre aussi un comportement assez équilibré
+        entre les deux classes, avec des scores proches de **0.79** en précision,
+        rappel et F1-score.
 
         ### Ce que montre l'application
-        L'application permet maintenant de comparer le dataset brut et le dataset nettoye,
-        puis d'utiliser le modele pour produire une prediction a partir d'un formulaire.
+        L'application permet de comparer les données brutes et les données nettoyées,
+        puis de tester le modèle à partir d'un formulaire utilisateur.
+        Elle rend le projet plus concret et plus facile à présenter.
 
-        ### Perspectives d'amelioration
-        Il reste possible d'ajouter les metriques du modele, une matrice de confusion,
-        plus de visualisations et une meilleure mise en valeur des variables importantes.
+        ### Comparaison avec un autre modèle
+        Le notebook montre aussi qu'un modèle **XGBoost** avec un seuil de **0.32**
+        obtient des scores légèrement supérieurs :
+        - **Accuracy :** 0.796274
+        - **ROC-AUC :** 0.893685
+        - **F1-Score :** 0.790611
+
+        Cela montre que le choix du modèle dépend aussi de l'objectif :
+        rechercher un bon compromis global, ou viser la meilleure performance possible.
+
+        ### Pistes d'Améliorations futures
         """
     )
 
+    st.checkbox("Approfondir le feature engineering")
+    st.checkbox("Comparer plus clairement RandomForest et XGBoost")
+    st.checkbox("Afficher les probabilités et le seuil optimisé dans l'application")
+    st.checkbox("Ajouter l'explicabilité du modèle")
 
-st.divider()
+
 st.caption("Spaceship Titanic - Par Christian - Mira 2025-2026")
