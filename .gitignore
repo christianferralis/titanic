@@ -14,22 +14,22 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Fichiers de données (Ne pas pousser de gros datasets sur Git !)
-data/raw/*
-!data/raw/.gitkeep
-data/processed/*
-!data/processed/.gitkeep
-*.csv
-*.xlsx
-*.parquet
+# data/raw/*
+# !data/raw/.gitkeep
+# data/processed/*
+# !data/processed/.gitkeep
+# *.csv
+# *.xlsx
+# *.parquet
 
 # Fichiers de Modèles ML (Gros fichiers binaires)
-models/*
-!models/.gitkeep
-*.pkl
-*.joblib
-*.h5
-*.pt
-*.onnx
+# models/*
+# !models/.gitkeep
+# *.pkl
+# *.joblib
+# *.h5
+# *.pt
+# *.onnx
 
 # Fichiers Système & OS
 .DS_Store
