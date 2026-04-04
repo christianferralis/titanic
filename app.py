@@ -1,252 +1,451 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
+import joblib
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
+import streamlit as st
 
-# -----------------------------------------------------------------------------
-# Configuration de la page Streamlit
-# -----------------------------------------------------------------------------
+
+DECK_MAPPING = {
+    "A": 0,
+    "B": 1,
+    "C": 2,
+    "D": 3,
+    "E": 4,
+    "F": 5,
+    "G": 6,
+}
+
+SIDE_MAPPING = {
+    "P - Babord": 0,
+    "S - Tribord": 1,
+}
+
+
 st.set_page_config(
-    page_title="Projet Machine Learning - EDA & Déploiement",
-    page_icon="🚀",
+    page_title="Spaceship Titanic",
+    page_icon="🪐",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
-# -----------------------------------------------------------------------------
-# Fonctions de chargement des données et du modèle (à compléter par les étudiants)
-# -----------------------------------------------------------------------------
+
+def result(is_win: bool) -> None:
+    col1, col2, col3 = st.columns([1.6, 1.2, 1.6])
+
+    if is_win:
+        with col2:
+            st.success("Bravo, tu as survécu(e) - vers l'infini et au-delà !")
+            st.image("images/ludowinner.png", use_container_width=True)
+    else:
+        with col2:
+            st.error("Oups, tu as été pulvérisé(e).")
+            st.image("images/sylvainlose.png", use_container_width=True)
+
+
+def make_arrow_compatible(df: pd.DataFrame) -> pd.DataFrame:
+    df_display = df.copy()
+    for column in df_display.columns:
+        if df_display[column].dtype == "object":
+            df_display[column] = df_display[column].astype(str)
+    return df_display
+
+
 @st.cache_data
-def load_data():
-    """
-    Fonction pour charger le dataset.
-    Remplacez le code ci-dessous par la lecture de votre fichier de données Kaggle.
-    Exemple: return pd.read_csv("data/raw/votre_fichier.csv")
-    """
-    # Données simulées pour l'exemple
-    np.random.seed(42)
-    df = pd.DataFrame({
-        "Feature_1": np.random.randn(500),
-        "Feature_2": np.random.rand(500) * 100,
-        "Feature_3": np.random.randint(1, 5, 500),
-        "Target": np.random.choice([0, 1], 500)
-    })
-    return df
+def load_raw_data():
+    return pd.read_csv("data/raw/train.csv")
+
+
+@st.cache_data
+def load_processed_data():
+    return pd.read_csv("data/processed/df_titanic_clean.csv")
+
 
 @st.cache_resource
 def load_model():
-    """
-    Fonction permettant de charger votre modèle pré-entraîné (ex: RandomForest).
-    Exemple avec joblib :
-    return joblib.load('models/mon_modele.pkl')
-    """
-    class DummyModel:
-        def predict(self, X):
-            return np.random.choice([0, 1], size=len(X))
-        
-        def predict_proba(self, X):
-            proba = np.random.rand(len(X), 2)
-            proba = proba / proba.sum(axis=1, keepdims=True)
-            return proba
+    return joblib.load("models/titanic_model.pkl")
 
-    return DummyModel()
 
-# Chargement initial
 try:
-    df = load_data()
+    df_raw = load_raw_data()
+    df_processed = load_processed_data()
     model = load_model()
     data_loaded = True
 except Exception as e:
-    st.error(f"Erreur lors du chargement des données ou du modèle : {e}")
+    st.error(f"Erreur lors du chargement des fichiers : {e}")
     data_loaded = False
 
-# -----------------------------------------------------------------------------
-# Menu de Navigation (Sidebar)
-# -----------------------------------------------------------------------------
+
 st.sidebar.title("Navigation")
-menu = ["🏠 Accueil", "📊 Analyse Exploratoire (EDA)", "🤖 Test du Modèle", "💡 Conclusions & Perspectives"]
-choice = st.sidebar.radio("Sommaire :", menu)
 
-st.sidebar.markdown("---")
+menu = st.sidebar.radio(
+    "Sommaire :",
+    [
+        "Accueil",
+        "Analyse Exploratoire (EDA)",
+        "Test du Modèle",
+        "Conclusions & Perspectives",
+    ],
+)
+st.sidebar.image("images/spaceship.png", use_container_width=True)
 
-# Ajouter des fonctionnalités supplémentaires dans la sidebar (ex: filtres globaux)
-if choice == "📊 Analyse Exploratoire (EDA)" and data_loaded:
-    st.sidebar.subheader("Filtres Globaux")
-    target_filter = st.sidebar.multiselect("Filtrer par Target :", options=df["Target"].unique(), default=df["Target"].unique())
-    # Filtrer le dataframe
-    df = df[df["Target"].isin(target_filter)]
 
-st.sidebar.markdown("---")
-st.sidebar.info("Template d'application Streamlit développé pour le projet Aflokkat.")
+if menu == "Accueil":
+    st.title("Spaceship Titanic")
 
-# =============================================================================
-# Section 1 : Accueil
-# =============================================================================
-if choice == "🏠 Accueil":
-    st.title("Projet Machine Learning : De l'Analyse au Déploiement 🎓")
-    
-    st.markdown("""
-    Cette application Streamlit est un template robuste conçu pour présenter les résultats de votre modèle de Machine Learning basé sur un dataset (ex: Kaggle).
-    """)
-    
-    # Utilisation de st.expander pour cacher/afficher l'information détaillée
-    with st.expander("📌 Vos Missions (Étudiants) : Cliquez pour développer", expanded=True):
-        st.markdown("""
-        1. **Données** : Placer le vrai dataset dans le dossier `data/` et l'importer dans la fonction `load_data()`.
-        2. **EDA** : Remplacer les visualisations génériques par vos propres graphiques interactifs (Plotly, Seaborn, Altair).
-        3. **Modélisation** : Entraîner un modèle dans un notebook (dossier `notebooks/`), le sauvegarder (ex: avec `joblib` ou `pickle`) dans le dossier `models/`, et le charger dans `load_model()`.
-        4. **Prédiction** : Créer un formulaire interactif robuste pour tester le modèle sur de nouvelles données.
-        5. **Conclusion** : Rédiger un bilan clair et argumenté des performances et pistes d'amélioration.
-        """)
+    with st.expander("Vos missions : cliquer pour développer", expanded=True):
+        st.markdown(
+            """
+            1. **Données** : charger le dataset brut dans `data/raw/train.csv`.
+            2. **Nettoyage** : charger le dataset traité dans `data/processed/df_titanic_clean.csv`.
+            3. **EDA** : comparer les données brutes et les données nettoyées.
+            4. **Modélisation** : charger le modèle entraîné depuis `models/titanic_model.pkl`.
+            5. **Prédiction** : tester la survie d'un passager avec le formulaire spatial.
+            """
+        )
 
-    st.subheader("Structure du projet recommandée :")
-    st.code("""
-    mon_projet/
-    ├── app.py                  # Script principal Streamlit (ce fichier)
-    ├── requirements.txt        # Fichier des dépendances
-    ├── README.md               # Documentation de votre projet
-    ├── data/
-    │   ├── raw/                # Données brutes de Kaggle
-    │   └── processed/          # Données nettoyées (optionnel)
-    ├── models/                 # Modèles entraînés (.pkl, .joblib, etc.)
-    ├── notebooks/              # Vos notebooks d'exploration et d'entraînement (Jupyter)
-    └── src/
-        └── utils.py          # Fonctions ou classes python externes au script principal
-    """, language="markdown")
-
-# =============================================================================
-# Section 2 : Analyse Exploratoire (EDA)
-# =============================================================================
-elif choice == "📊 Analyse Exploratoire (EDA)":
-    st.title("Analyse Exploratoire des Données (EDA) 📈")
-    
     if data_loaded:
-        # Utilisation de st.tabs pour organiser finement l'affichage
-        tab1, tab2, tab3 = st.tabs(["Aperçu des données", "Statistiques Descriptives", "Visualisations"])
-        
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Lignes brutes", df_raw.shape[0])
+        m2.metric("Colonnes brutes", df_raw.shape[1])
+        m3.metric("Lignes nettoyées", df_processed.shape[0])
+        m4.metric("Colonnes nettoyées", df_processed.shape[1])
+
+elif menu == "Analyse Exploratoire (EDA)":
+    st.title("Analyse Exploratoire des Données (EDA)")
+    st.caption(
+        "Compare les données brutes et les données nettoyées avant de lancer une prédiction."
+    )
+    st.divider()
+
+    if not data_loaded:
+        st.warning("Les données ne sont pas chargées.")
+    else:
+        tab1, tab2, tab3, tab4 = st.tabs(
+            ["Aperçu brut", "Aperçu nettoyé", "Statistiques", "Visualisations"]
+        )
+
         with tab1:
-            st.subheader("Extrait du jeu de données")
-            st.dataframe(df.head(15), use_container_width=True)
-            
-            # Bouton de téléchargement
-            csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="Télécharger le dataset filtré au format CSV",
-                data=csv,
-                file_name='dataset_filtre.csv',
-                mime='text/csv',
-            )
-            
+            st.subheader("Extrait du dataset brut")
+            st.dataframe(make_arrow_compatible(df_raw.head()), use_container_width=True)
+
         with tab2:
-            st.subheader("Description des variables")
-            st.write(df.describe())
-            
-            # Affichage de métriques clés "Dashboard style"
-            col_m1, col_m2, col_m3 = st.columns(3)
-            col_m1.metric("Nombre de lignes", df.shape[0])
-            col_m2.metric("Nombre de colonnes", df.shape[1])
-            col_m3.metric("Valeurs manquantes totales", df.isna().sum().sum())
+            st.subheader("Extrait du dataset nettoyé")
+            st.dataframe(
+                make_arrow_compatible(df_processed.head()), use_container_width=True
+            )
 
         with tab3:
-            st.subheader("Visualisations Graphiques")
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("**Distribution de Feature_1 (selon la Target)**")
-                fig, ax = plt.subplots(figsize=(6, 4))
-                sns.histplot(data=df, x="Feature_1", hue="Target", kde=True, ax=ax, palette="Set1")
-                st.pyplot(fig)
-                
-            with col2:
-                st.markdown("**Matrice de Corrélation**")
-                fig, ax = plt.subplots(figsize=(6, 4))
-                corr = df.select_dtypes(include=[np.number]).corr()
-                sns.heatmap(corr, annot=True, cmap="coolwarm", ax=ax, fmt=".2f", vmin=-1, vmax=1)
-                st.pyplot(fig)
-                
-            st.info("💡 **Astuce Étudiant :** Explorer le package `plotly.express` pour des graphiques 100% interactifs (zooms, survol, etc.).")
+            st.subheader("Description des variables")
+            m1, m2 = st.columns(2)
+            m1.metric("Valeurs manquantes brut", int(df_raw.isna().sum().sum()))
+            m2.metric(
+                "Valeurs manquantes nettoyées", int(df_processed.isna().sum().sum())
+            )
 
-# =============================================================================
-# Section 3 : Test du Modèle
-# =============================================================================
-elif choice == "🤖 Test du Modèle":
-    st.title("Tester le Modèle de Machine Learning 🚀")
-    st.markdown("""
-    Testez la prédiction du modèle en modifiant les paramètres via le formulaire ci-dessous.
-    """)
-    
-    with st.form("prediction_form"):
-        st.subheader("Définissez les paramètres d'entrée :")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            feat_1 = st.number_input("Feature 1 (Valeur continue)", value=0.0, step=0.1)
-        with col2:
-            feat_2 = st.slider("Feature 2 (Curseur)", min_value=0.0, max_value=100.0, value=25.0, step=1.0)
-        with col3:
-            feat_3 = st.selectbox("Feature 3 (Catégorie numérique)", options=[1, 2, 3, 4, 5])
-            
-        submit_button = st.form_submit_button(label="Exécuter le modèle")
+            with st.expander("Statistiques du dataset brut", expanded=True):
+                st.dataframe(
+                    make_arrow_compatible(df_raw.describe(include="all").reset_index()),
+                    use_container_width=True,
+                )
 
-    if submit_button:
-        # Configuration des logs ou spin d'attente
-        with st.spinner('Analyse par le modèle en cours...'):
-            input_data = pd.DataFrame({
-                "Feature_1": [feat_1], 
-                "Feature_2": [feat_2],
-                "Feature_3": [feat_3]
-            })
-            
-            # Séparation de l'UI pour la réponse
-            st.markdown("### Résultats")
-            
+            with st.expander("Statistiques du dataset nettoyé", expanded=True):
+                st.dataframe(
+                    make_arrow_compatible(
+                        df_processed.describe(include="all").reset_index()
+                    ),
+                    use_container_width=True,
+                )
+
+        with tab4:
+            st.markdown("### Répartition des passagers transportés")
+            if "Transported" in df_raw.columns:
+                fig, ax = plt.subplots(figsize=(3.2, 3.2))
+                df_raw["Transported"].value_counts().plot.pie(autopct="%1.1f%%", ax=ax)
+                ax.set_ylabel("")
+                ax.set_title("Répartition des passagers transportés")
+                st.pyplot(fig, use_container_width=False)
+            st.divider()
+
+            st.markdown("### Transport selon la planète d'origine")
+            if {"HomePlanet", "Transported"}.issubset(df_raw.columns):
+                fig, ax = plt.subplots(figsize=(4.2, 2.6))
+                pd.crosstab(df_raw["HomePlanet"], df_raw["Transported"]).plot(
+                    kind="bar", ax=ax
+                )
+                ax.set_title("Transport selon la planète d'origine")
+                ax.set_ylabel("Nombre de passagers")
+                ax.set_xlabel("HomePlanet")
+                st.pyplot(fig, use_container_width=False)
+            st.divider()
+
+            st.markdown("### Transport selon CryoSleep")
+            if {"CryoSleep", "Transported"}.issubset(df_raw.columns):
+                fig, ax = plt.subplots(figsize=(4.2, 2.6))
+                pd.crosstab(df_raw["CryoSleep"], df_raw["Transported"]).plot(
+                    kind="bar", ax=ax
+                )
+                ax.set_title("Transport selon CryoSleep")
+                ax.set_ylabel("Nombre de passagers")
+                ax.set_xlabel("CryoSleep")
+                st.pyplot(fig, use_container_width=False)
+            st.divider()
+
+            st.markdown("### Probabilité d'être transporté selon CryoSleep")
+            if {"CryoSleep", "Target"}.issubset(df_processed.columns):
+                fig, ax = plt.subplots(figsize=(4.2, 2.6))
+                sns.barplot(
+                    data=df_processed.reset_index(drop=True),
+                    x="CryoSleep",
+                    y="Target",
+                    ax=ax,
+                )
+                ax.set_title("Probabilité d'être transporté selon CryoSleep")
+                ax.set_ylabel("Probabilité")
+                ax.set_xlabel("CryoSleep")
+                st.pyplot(fig, use_container_width=False)
+            st.divider()
+
+            st.markdown("### Transport selon la destination")
+            if {"Destination", "Transported"}.issubset(df_raw.columns):
+                fig, ax = plt.subplots(figsize=(4.2, 2.6))
+                pd.crosstab(df_raw["Destination"], df_raw["Transported"]).plot(
+                    kind="bar", ax=ax
+                )
+                ax.set_title("Transport selon la destination")
+                ax.set_ylabel("Nombre de passagers")
+                ax.set_xlabel("Destination")
+                st.pyplot(fig, use_container_width=False)
+            st.divider()
+
+            st.markdown("### Transport selon le deck")
+            if {"Cabin", "Transported"}.issubset(df_raw.columns):
+                deck_df = df_raw[["Cabin", "Transported"]].copy()
+                deck_df["Deck"] = deck_df["Cabin"].astype(str).str.split("/").str[0]
+                fig, ax = plt.subplots(figsize=(4.2, 2.6))
+                pd.crosstab(deck_df["Deck"], deck_df["Transported"]).plot(
+                    kind="bar", ax=ax
+                )
+                ax.set_title("Transport selon le deck")
+                ax.set_ylabel("Nombre de passagers")
+                ax.set_xlabel("Deck")
+                st.pyplot(fig, use_container_width=False)
+
+elif menu == "Test du Modèle":
+    st.title("Vérifie si tu aurais survécu au Spaceship Titanic")
+
+    if not data_loaded:
+        st.warning("Le modèle ou les données ne sont pas chargés.")
+    else:
+        with st.container(border=True):
+            st.info("Renseigne tes informations personnelles et les détails du voyage.")
+
+            # st.markdown("### Profil passager :")
+            profil_col1, profil_col2 = st.columns(2)
+            with profil_col1:
+                 with st.container(border=False):
+                    st.caption("Identité :")
+                    age = st.slider("Âge", 0, 80, 40)
+            with profil_col2:
+                with st.container(border=False):
+                    cond_title_spacer, cond_title_col = st.columns([0.35, 0.65])
+                    with cond_title_col:
+                        st.caption("Conditions du voyage :")
+                    cond_spacer, cond_col1, cond_col2 = st.columns([0.2, 0.4, 0.4])
+                    with cond_col1:
+                        cryosleep = st.segmented_control(
+                            "Mode CryoSleep :",
+                            options=[0, 1],
+                            default=0,
+                            key="cryosleep_control",
+                            format_func=lambda x: "Non" if x == 0 else "Oui",
+                        )
+                        vip = st.segmented_control(
+                            "Statut VIP :",
+                            options=[0, 1],
+                            default=0,
+                            key="vip_control",
+                            format_func=lambda x: "Non" if x == 0 else "Oui",
+                        )
+                    with cond_col2:
+                        depenses_activees = st.segmented_control(
+                            "Souhaites-tu dépenser ?",
+                            options=[0, 1],
+                            default=0,
+                            key="spend_control",
+                            format_func=lambda x: "Non" if x == 0 else "Oui",
+                        )
+
+            with st.container(border=False):
+                st.markdown("### Dépenses à bord :")
+                if depenses_activees == 1:
+                    with st.container(border=True):
+                        spend_col1, spend_col2, spend_col3, spend_col4, spend_col5 = st.columns(5)
+                        with spend_col1:
+                            room_service = st.number_input(
+                                "RoomService :", min_value=0.0, value=0.0, step=10.0
+                            )
+                        with spend_col2:
+                            food_court = st.number_input(
+                                "FoodCourt :", min_value=0.0, value=0.0, step=10.0
+                            )
+                        with spend_col3:
+                            shopping_mall = st.number_input(
+                                "ShoppingMall :", min_value=0.0, value=0.0, step=10.0
+                            )
+                        with spend_col4:
+                            spa = st.number_input(
+                                "Spa :", min_value=0.0, value=0.0, step=10.0
+                            )
+                        with spend_col5:
+                            vr_deck = st.number_input(
+                                "VRDeck :", min_value=0.0, value=0.0, step=10.0
+                            )
+                else:
+                    with st.container(border=True):
+                        st.caption("Pas de dépenses, tu préfères économiser pour les souvenirs du voyage.")
+                    room_service = 0.0
+                    food_court = 0.0
+                    shopping_mall = 0.0
+                    spa = 0.0
+                    vr_deck = 0.0
+
+                st.markdown("### Voyage :")
+                voyage_col1, voyage_col2 = st.columns([1.1, 1.4])
+                with voyage_col1:
+                    with st.container(border=False):
+                        homeplanet = st.segmented_control(
+                            "Planète d'origine :",
+                            options=["Earth", "Europa", "Mars", "Inconnue"],
+                            default="Earth",
+                            key="homeplanet_control",
+                        )
+                with voyage_col2:
+                    with st.container(border=False):
+                        cabin_top_col1, cabin_top_col2 = st.columns(2)
+                        with cabin_top_col1:
+                            cabin_num = st.number_input(
+                                "Numéro de cabine :",
+                                min_value=0,
+                                max_value=1894,
+                                value=0,
+                                step=1,
+                            )
+                        with cabin_top_col2:
+                            deck_label = st.selectbox(
+                                "Deck :",
+                                options=list(DECK_MAPPING.keys()),
+                                index=0,
+                            )
+                        side_label = st.segmented_control(
+                            "Côté :",
+                            options=list(SIDE_MAPPING.keys()),
+                            default="P - Babord",
+                            key="side_control",
+                        )
+
+                predire = st.button(
+                    "Appuie si tu veux connaître ton sort",
+                    type="primary",
+                    use_container_width=True,
+                )
+
+        if predire:
             try:
+                expected_columns = list(model.feature_names_in_)
+                input_data = pd.DataFrame(0, index=[0], columns=expected_columns)
+
+                if "Age" in input_data.columns:
+                    input_data.loc[0, "Age"] = age
+                if "CryoSleep" in input_data.columns:
+                    input_data.loc[0, "CryoSleep"] = cryosleep
+                if "VIP" in input_data.columns:
+                    input_data.loc[0, "VIP"] = vip
+                if "Num" in input_data.columns:
+                    input_data.loc[0, "Num"] = cabin_num
+                if "Side" in input_data.columns:
+                    input_data.loc[0, "Side"] = SIDE_MAPPING[side_label]
+                if "Side_P" in input_data.columns:
+                    input_data.loc[0, "Side_P"] = 1 if side_label == "P - Babord" else 0
+                if "Side_S" in input_data.columns:
+                    input_data.loc[0, "Side_S"] = 1 if side_label == "S - Tribord" else 0
+                if "RoomService" in input_data.columns:
+                    input_data.loc[0, "RoomService"] = room_service
+                if "FoodCourt" in input_data.columns:
+                    input_data.loc[0, "FoodCourt"] = food_court
+                if "ShoppingMall" in input_data.columns:
+                    input_data.loc[0, "ShoppingMall"] = shopping_mall
+                if "Spa" in input_data.columns:
+                    input_data.loc[0, "Spa"] = spa
+                if "VRDeck" in input_data.columns:
+                    input_data.loc[0, "VRDeck"] = vr_deck
+                if "over_15" in input_data.columns:
+                    input_data.loc[0, "over_15"] = 1 if age > 15 else 0
+                if "Deck_encoded" in input_data.columns:
+                    input_data.loc[0, "Deck_encoded"] = DECK_MAPPING[deck_label]
+
+                if homeplanet == "Earth" and "HomePlanet_Earth" in input_data.columns:
+                    input_data.loc[0, "HomePlanet_Earth"] = 1
+                elif (
+                    homeplanet == "Europa"
+                    and "HomePlanet_Europa" in input_data.columns
+                ):
+                    input_data.loc[0, "HomePlanet_Europa"] = 1
+                elif homeplanet == "Mars" and "HomePlanet_Mars" in input_data.columns:
+                    input_data.loc[0, "HomePlanet_Mars"] = 1
+                elif "HomePlanet_nan" in input_data.columns:
+                    input_data.loc[0, "HomePlanet_nan"] = 1
+
                 prediction = model.predict(input_data)
-                proba = model.predict_proba(input_data)
-                
-                res_col1, res_col2 = st.columns(2)
-                
-                with res_col1:
-                    if prediction[0] == 1:
-                        st.success(f"La classe prédite est : **{prediction[0]}**")
-                    else:
-                        st.warning(f"La classe prédite est : **{prediction[0]}**")
-                        
-                with res_col2:
-                    st.markdown("**Confiance du modèle (Probabilités)**")
-                    proba_df = pd.DataFrame(proba, columns=["Classe 0", "Classe 1"]).T
-                    st.bar_chart(proba_df)
-                
+                result(int(prediction[0]) == 1)
+
             except Exception as e:
-                st.error(f"Erreur lors de la prédiction. Vérifiez que les colonnes données au modèle correspondent exactement à celles attendues. Détail : {e}")
+                st.error(f"Erreur lors de la prediction : {e}")
 
-# =============================================================================
-# Section 4 : Conclusions & Perspectives
-# =============================================================================
-elif choice == "💡 Conclusions & Perspectives":
-    st.title("Conclusions et Pistes d'Amélioration 🎯")
-    
-    st.markdown("""
-    ### 📝 Bilan du Projet
-    Utilisez cette page pour résumer l'impact métier de votre modèle par rapport au problème Kaggle initial. 
-    Parlez des compromis, de la précision vs le rappel de votre modèle (ex: importance des Faux Positifs).
-    
-    **Performances Finales du Modèle :**
-    - **Accuracy :** 85% (exemple)
-    - **F1-Score :** 82% (exemple)
-    
-    ### 🚧 Pistes d'Améliorations futures
-    """)
-    
-    # Checklist des améliorations pour implémentation par les étudiants
-    st.checkbox("✨ Ingénierie des caractéristiques avancées (Feature Engineering)")
-    st.checkbox("🚀 Entraînement sur une infrastructure Cloud (AWS, GCP)")
-    st.checkbox("🌍 Intégrer l'API FastAPI en backend plutôt que d'avoir le modèle directement dans Streamlit")
-    st.checkbox("📈 Ajout d'explicabilité du modèle (SHAP values intégrées visuellement)")
+elif menu == "Conclusions & Perspectives":
+    st.title("Conclusions et Pistes d'Amélioration")
 
-# -----------------------------------------------------------------------------
-# Footer
-# -----------------------------------------------------------------------------
-st.markdown("---")
-st.markdown("<p style='text-align: center; color: grey;'>Projet Streamlit Template par Baptiste Audroin | Aflokkat</p>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        ### Bilan du Projet
+        Ce projet Spaceship Titanic m'a permis de suivre toutes les étapes d'un projet
+        de machine learning : exploration des données, nettoyage, preprocessing,
+        création de variables, entraînement de plusieurs modèles puis intégration
+        du modèle final dans une application Streamlit.
+
+        ### Résultats obtenus dans le notebook
+        Dans le notebook, le modèle RandomForest retenu avec un seuil optimisé de **0.49**
+        obtient les performances suivantes sur le jeu de test :
+        - **Accuracy :** 0.791466
+        - **ROC-AUC :** 0.880194
+        - **F1-Score :** 0.786986
+
+        Le rapport de classification montre aussi un comportement assez équilibré
+        entre les deux classes, avec des scores proches de **0.79** en précision,
+        rappel et F1-score.
+
+        ### Ce que montre l'application
+        L'application permet de comparer les données brutes et les données nettoyées,
+        puis de tester le modèle à partir d'un formulaire utilisateur.
+        Elle rend le projet plus concret et plus facile à présenter.
+
+        ### Comparaison avec un autre modèle
+        Le notebook montre aussi qu'un modèle **XGBoost** avec un seuil de **0.32**
+        obtient des scores légèrement supérieurs :
+        - **Accuracy :** 0.796274
+        - **ROC-AUC :** 0.893685
+        - **F1-Score :** 0.790611
+
+        Cela montre que le choix du modèle dépend aussi de l'objectif :
+        rechercher un bon compromis global, ou viser la meilleure performance possible.
+
+        ### Pistes d'Améliorations futures
+        """
+    )
+
+    st.checkbox("Approfondir le feature engineering")
+    st.checkbox("Comparer plus clairement RandomForest et XGBoost")
+    st.checkbox("Afficher les probabilités et le seuil optimisé dans l'application")
+    st.checkbox("Ajouter l'explicabilité du modèle")
+
+
+st.caption("Spaceship Titanic - Par Christian - Mira 2025-2026")
